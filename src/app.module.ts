@@ -13,6 +13,9 @@ import { BullModule } from '@nestjs/bull';
   imports: [
     BullModule.forRoot({
       url: process.env.REDIS_URL || 'redis://localhost:6379',
+      redis: {
+        maxRetriesPerRequest: null,
+      },
     }),
     AuthModule,
     RequestsModule,
