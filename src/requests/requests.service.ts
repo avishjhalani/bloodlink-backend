@@ -55,29 +55,8 @@ export class RequestsService {
         data: { donorsNotified: matchedDonors.length },
       });
 
-      // Send emails to all matched donors in parallel (via Redis Bull Queue)
-      try {
-        const jobs = matchedDonors.map((donor) =>
-          this.notificationsQueue.add(
-            'send-email',
-            { donor, request },
-            {
-              attempts: 3, // retry up to 3 times
-              backoff: {
-                type: 'exponential',
-                delay: 10000, // wait 10s before retry, incrementing exponentially
-              },
-              removeOnComplete: true, // clean up completed jobs from Redis
-              removeOnFail: false, // keep failed jobs for investigation
-            }
-          )
-        );
-        await Promise.all(jobs);
-        this.logger.log(`Queued ${matchedDonors.length} email notification jobs in Redis.`);
-      } catch (err: any) {
-        this.logger.warn(`Redis queue error: ${err.message}. Falling back to in-memory non-blocking dispatch.`);
-        this.notificationsService.notifyAllDonors(matchedDonors, request);
-      }
+      // Queue emails in background (completely non-blocking)
+      this.queueEmails(matchedDonors, request);
     }
 
     return {
@@ -194,5 +173,40 @@ export class RequestsService {
     }
 
     return request;
+  }
+
+  private async queueEmails(matchedDonors: any[], request: any) {
+    try {
+      const queuePromises = matchedDonors.map((donor) =>
+        this.notificationsQueue.add(
+          'send-email',
+          { donor, request },
+          {
+            attempts: 3,
+            backoff: {
+              type: 'exponential',
+              delay: 10000,
+            },
+            removeOnComplete: true,
+            removeOnFail: false,
+          }
+        )
+      );
+
+      // Wrap in a 4-second timeout to prevent command buffering from hanging if Redis is offline
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Queue timeout (Redis connection hanging)')), 4000)
+      );
+
+      await Promise.race([
+        Promise.all(queuePromises),
+        timeoutPromise
+      ]);
+
+      this.logger.log(`Queued ${matchedDonors.length} email notification jobs in Redis.`);
+    } catch (err: any) {
+      this.logger.warn(`Redis queue error: ${err.message}. Falling back to in-memory non-blocking dispatch.`);
+      this.notificationsService.notifyAllDonors(matchedDonors, request);
+    }
   }
 }
