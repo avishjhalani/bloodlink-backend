@@ -15,6 +15,11 @@ import { BullModule } from '@nestjs/bull';
       url: process.env.REDIS_URL || 'redis://localhost:6379',
       redis: {
         maxRetriesPerRequest: null,
+        ...(process.env.REDIS_URL?.startsWith('rediss://') ? {
+          tls: {
+            rejectUnauthorized: false,
+          },
+        } : {}),
       },
     }),
     AuthModule,
