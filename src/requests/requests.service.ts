@@ -109,6 +109,20 @@ export class RequestsService {
     return this.prisma.bloodRequest.findMany({
       where: { requesterId: userId },
       orderBy: { createdAt: 'desc' },
+      include: {
+        notifications: {
+          include: {
+            donor: {
+              select: {
+                id: true,
+                name: true,
+                phone: true,
+                bloodType: true,
+              },
+            },
+          },
+        },
+      },
     });
   }
 
@@ -124,10 +138,35 @@ export class RequestsService {
     });
   }
 
-  async fulfill(requestId: number, userId: number) {
-    return this.prisma.bloodRequest.update({
+  async fulfill(requestId: number, userId: number, donorIds: number[] = []) {
+    // 1. Mark request as fulfilled
+    const request = await this.prisma.bloodRequest.update({
       where: { id: requestId, requesterId: userId },
       data: { status: 'fulfilled' },
     });
+
+    // 2. If donorIds are specified, update their status to completed and increment donor totals
+    if (donorIds && donorIds.length > 0) {
+      await this.prisma.donorNotification.updateMany({
+        where: {
+          requestId: requestId,
+          donorId: { in: donorIds },
+        },
+        data: { status: 'completed' },
+      });
+
+      for (const donorId of donorIds) {
+        await this.prisma.user.update({
+          where: { id: donorId },
+          data: {
+            totalDonations: { increment: 1 },
+            lastDonationDate: new Date(),
+            isAvailable: false,
+          },
+        });
+      }
+    }
+
+    return request;
   }
 }

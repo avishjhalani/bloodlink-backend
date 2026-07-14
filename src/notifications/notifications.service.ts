@@ -42,7 +42,13 @@ export class NotificationService{
                 <p style="margin: 5px 0;"><strong>Urgency:</strong> ${request.urgency.toUpperCase()}</p>
               </div>
 
-              <p>If you are available to donate, please reply to this email or contact the hospital directly.</p>
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/request/confirm/${request.id}" 
+                   style="background: #dc2626; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                  Accept & Confirm Donation
+                </a>
+              </div>
+              <p>Or if you prefer, you can reply to this email or contact the hospital directly.</p>
               <p style="color: #6b7280; font-size: 14px;">
                 You received this because you are a registered donor within 10km of this request.
               </p>

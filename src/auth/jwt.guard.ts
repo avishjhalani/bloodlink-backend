@@ -26,10 +26,23 @@ export class JwtGuard implements CanActivate {
   }
 
   private extractToken(request: any): string | null {
+    // 1. Try to extract from Authorization header
     const authHeader = request.headers['authorization'];
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return null;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      return authHeader.split(' ')[1];
     }
-    return authHeader.split(' ')[1];
+    // 2. Try to extract from Cookie header
+    const cookieHeader = request.headers['cookie'];
+    if (cookieHeader) {
+      const cookies = cookieHeader.split(';').reduce((acc: any, c: string) => {
+        const [name, val] = c.trim().split('=');
+        if (name && val) acc[name] = val;
+        return acc;
+      }, {});
+      if (cookies['token']) {
+        return cookies['token'];
+      }
+    }
+    return null;
   }
 }

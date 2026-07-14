@@ -23,7 +23,7 @@ export class RequestsController {
     }
 
     @Patch(':id/fulfill')
-    fulfill(@Param('id') id:string, @Req() req:any){
-        return this.requestService.fulfill(Number(id), req['user'].sub);
+    fulfill(@Param('id') id:string, @Req() req:any, @Body('donorIds') donorIds?: number[]){
+        return this.requestService.fulfill(Number(id), req['user'].sub, donorIds);
     }
 }
