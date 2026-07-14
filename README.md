@@ -59,7 +59,7 @@ npx prisma db push
 ```bash
 npm run start:dev
 ```
-The REST API server will run at [http://localhost:3001](http://localhost:3001).
+The REST API server will run at (https://bloodlink-backend-ng49.onrender.com).
 
 ---
 
